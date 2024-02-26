@@ -40,6 +40,8 @@ export async function linkedinCallback(req, res) {
                 id_token,
                 scope,
                 type,
+                user: req.user?.id ?? '65dc6a3c28d9caf406e85e86',
+                platform: 'linkedin',
                 expiry_date: new Date(currentTime + data.expires_in),
             })
         }
@@ -52,7 +54,6 @@ export async function linkedinCallback(req, res) {
 
 export async function makeLinkedinPost(req, res) {
     const { text } = req.body
-
     try {
         const token = await Token.findOne()
         const headers = {
