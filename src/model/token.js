@@ -2,11 +2,11 @@ import mongoose from "mongoose";
 
 const tokenSchema = mongoose.Schema(
     {
-        // user: {
-        //     type: mongoose.Schema.Types.ObjectId,
-        //     required: false,
-        //     ref: "User",
-        // },
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: false,
+            ref: "User",
+        },
         access_token: {
             type: String,
             required: true,
@@ -23,7 +23,13 @@ const tokenSchema = mongoose.Schema(
             type: String,
             required: false
         },
+        platform: {
+            type: String,
+            required: true
+        },
+
         scope: Array,
+
 
     },
     {
