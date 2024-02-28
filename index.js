@@ -9,6 +9,8 @@ import instagramRoutes from './src/routes/instagram-routes.js'
 import facebookRoutes from './src/routes/facebook-routes.js'
 import userRoutes from './src/routes/user-routes.js'
 // import postRoutes from './src/routes/post-routes.js'
+import https from 'https'
+import fs from 'fs'
 
 const app = express();
 dotenv.config()
@@ -18,6 +20,10 @@ app.use(cors())
 app.use(bodyParser.json())
 
 
+const options = {
+  key: fs.readFileSync('server.key'),
+  cert: fs.readFileSync('server.cert')
+};
 app.use('/linkedin', linkedinRoutes)
 app.use('/facebook', facebookRoutes)
 app.use('/instagram', instagramRoutes)
@@ -44,9 +50,10 @@ mongoose
 
     console.log("<<<<<<-------MONGODB CONNECTED AND MONGOD RUNNING------->>>>>")
   )
-  .catch((err) => console.log('-----', err.message, process.env.MONGODB_URI));
+  .catch((err) => console.log("🚀 ~ err:", err))
 
-app.listen(8000, () => {
-  console.log("🚀 ~ app.listen ~ listening on port:", 8000)
-}
-)
+const server = https.createServer(options, app);
+const PORT = process.env.PORT || 8000;
+
+server.listen(PORT,
+  () => console.log("🚀 ~ app.listen ~ listening on port:", 8000))

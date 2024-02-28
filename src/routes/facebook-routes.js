@@ -1,7 +1,12 @@
 import express from 'express'
-import myFacebook from '../controller/facebook-controller.js';
+import { getMyFacebookToken, catchFacebookRedirect } from '../controller/facebook-controller.js';
+import axios from 'axios';
 const router = express.Router();
 
-router.get('/', myFacebook)
+router.get('/oauth', getMyFacebookToken)
+
+
+router.get('/callback', catchFacebookRedirect)
+
 
 export default router;

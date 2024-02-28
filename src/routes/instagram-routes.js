@@ -1,7 +1,16 @@
 import express from 'express'
-import myInstagram from '../controller/instagram-controller.js';
+import {
+    loginWithInstagram,
+    getRefreshAccessToken,
+    instagramCallback,
+    makeInstagramPost
+} from '../controller/instagram-controller.js';
+
 const router = express.Router();
 
-router.get('/', myInstagram)
+router.get('/oauth', loginWithInstagram)
+router.get('callback', instagramCallback)
+router.get('refresh-access-token', getRefreshAccessToken)
+router.post('make-post', makeInstagramPost)
 
 export default router;

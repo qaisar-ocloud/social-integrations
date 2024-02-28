@@ -13,7 +13,6 @@ const tokenSchema = mongoose.Schema(
         },
         id_token: {
             type: String,
-            required: false,
         },
         expiry_date: {
             type: Date,
@@ -21,14 +20,15 @@ const tokenSchema = mongoose.Schema(
         },
         token_type: {
             type: String,
-            required: false
         },
         platform: {
             type: String,
             required: true
         },
-
-        scope: Array,
+        platform_user_id: {
+            type: String,
+        },
+        permission: Array,
 
 
     },

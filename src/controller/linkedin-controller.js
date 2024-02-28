@@ -35,10 +35,11 @@ export async function linkedinCallback(req, res) {
         if (data) {
             const currentTime = Date.now()
             const { scope, id_token, access_token, type } = data
+
             await Token.create({
                 access_token,
                 id_token,
-                scope,
+                permission: scope,
                 type,
                 user: req.user?.id ?? '65dc6a3c28d9caf406e85e86',
                 platform: 'linkedin',
@@ -55,7 +56,10 @@ export async function linkedinCallback(req, res) {
 export async function makeLinkedinPost(req, res) {
     const { text } = req.body
     try {
-        const token = await Token.findOne()
+        const token = await Token.findOne({
+            // user:req.user.id,
+            platform: 'linkedin'
+        })
         const headers = {
             'Authorization': `Bearer ${token.access_token}`,
             'X-Restli-Protocol-Version': '2.0.0'
