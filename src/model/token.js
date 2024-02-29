@@ -25,12 +25,14 @@ const tokenSchema = mongoose.Schema(
             type: String,
             required: true
         },
+
         platform_user_id: {
             type: String,
         },
+        page_id: {
+            type: String,
+        },
         permission: Array,
-
-
     },
     {
         timestamps: true,
