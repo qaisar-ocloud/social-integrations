@@ -3,7 +3,10 @@ import bcrypt from "bcryptjs";
 import Otp from "../model/otp.js";
 import jwt from "jsonwebtoken";
 import nodeMailer from "nodemailer";
-
+import Token from "../model/token.js";
+import { error } from "console";
+import { platform } from "os";
+// import Platform from "../model/platform";
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
@@ -35,38 +38,42 @@ export const registerUser = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(403).json({ message: error.message })
+    res.status(403).json({ message: error.message });
   }
-}
-
+};
 
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+    }
 
-  if (user && (await bcrypt.compare(password, user.password))) {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      res.status(401).json({ message: "Invalid password" });
+    }
+
+    const tokens = await Token.find({ user: user?.id });
+    const access_tokens = tokens.map((token) => token.platform);
     res.status(200).json({
       message: "Success",
       id: user._id,
       name: user.name,
       email: email,
       token: getToken(user._id),
+      access_tokens,
     });
+  } catch (error) {
+    console.log("🚀 ~ loginUser ~ error:", error);
+    res.status(500).json({ message: error.message });
   }
-  else {
-    res.status(400).json({ message: "Invalid Credientials" });
-  }
-}
-
-const getToken = (id) => {
-
-  return jwt.sign({ id }, process.env.JWT_SECRET);
 };
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-
     const user = await User.findOne({ email });
 
     if (user) {
@@ -94,16 +101,14 @@ export const forgotPassword = async (req, res) => {
           return res.status(404).json(err);
         }
       });
-      res.send(user)
+      res.send(user);
     } else {
-
-      return res.status(404)
+      return res
+        .status(404)
         .json({ message: "User Not Found, Enter Email again" });
     }
-
   } catch (error) {
-    return res.status(400)
-      .json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 
@@ -120,8 +125,7 @@ export const resetPassword = async (req, res) => {
 
     if (diff < 0) {
       otpAlive = false;
-    }
-    else {
+    } else {
       otpAlive = true;
     }
     if (otpVerified && otpAlive) {
@@ -135,14 +139,10 @@ export const resetPassword = async (req, res) => {
           token: getToken(req.params.id),
         });
       }
-    }
-    else {
-
+    } else {
       return res.status(400).json({ message: "Wrong Otp, Retry" });
     }
-  }
-  else {
-
+  } else {
     return res.status(400).json({ message: "Passwords did no Matched, Retry" });
   }
 };
@@ -153,4 +153,6 @@ export const getMe = async (req, res) => {
   return res.status(200).json({ id: id, name: name, email: email });
 };
 
-
+function getToken(id) {
+  return jwt.sign({ id }, process.env.JWT_SECRET);
+}
