@@ -9,7 +9,7 @@ export function prepareQueryForFbGraphql(access_token, gqlQueryParams) {
       );
     }
 
-    const app_secret = "65d19d92fbc7a7fb08e93caf2e91313b";
+    const app_secret = process.env.FACEBOOK_APP_SECRET;
     const appsecret_proof = crypto
       .createHmac("sha256", app_secret)
       .update(access_token)
@@ -42,7 +42,7 @@ export function prepareMutationForFbGraphql(
       );
     }
 
-    const app_secret = "65d19d92fbc7a7fb08e93caf2e91313b";
+    const app_secret = process.env.FACEBOOK_APP_SECRET;
     const appsecret_proof = crypto
       .createHmac("sha256", app_secret)
       .update(access_token)
@@ -102,9 +102,7 @@ export async function validateFacebookToken(access_token) {
     }
 
     const currentUserToken = access_token;
-    const validAppAccessToken =
-      process.env.FACEBOOK_APP_ACCESS_TOKEN ||
-      "693823482937293|2HnmlrY3hT3eNVmZFAR8o5-ejjo";
+    const validAppAccessToken = process.env.FACEBOOK_APP_ACCESS_TOKEN;
 
     let BASE_URL = "https://graph.facebook.com/debug_token";
     BASE_URL += `?input_token=${currentUserToken}`;

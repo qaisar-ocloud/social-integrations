@@ -29,8 +29,8 @@ export async function linkedinCallback(req, res) {
         code,
         state,
         grant_type: "authorization_code",
-        client_id: process.env.LINKEDIN_CLIENT_ID || "785do9buvvueo1",
-        client_secret: process.env.LINKEDIN_CLIENT_SECRET || "hfweq4AUAV20msDj",
+        client_id: process.env.LINKEDIN_CLIENT_ID,
+        client_secret: process.env.LINKEDIN_CLIENT_SECRET,
         redirect_uri: "https://localhost:8000/linkedin/callback",
       },
       { headers }
@@ -63,7 +63,7 @@ export async function makeLinkedinPost(req, res) {
 
   try {
     const token = await Token.findOne({
-      // user:req.user.id,
+      user: req.user.id,
       platform: "linkedin",
     });
 

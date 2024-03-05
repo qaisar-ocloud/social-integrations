@@ -10,7 +10,7 @@ import {
 export async function getMyFacebookToken(req, res) {
   try {
     let url = "https://www.facebook.com/v19.0/dialog/oauth";
-    const APP_ID = process.env.FACEBOOK_APP_ID || "693823482937293";
+    const APP_ID = process.env.FACEBOOK_APP_ID;
     const REDIRECT_URI = "https://localhost:8000/facebook/callback";
 
     url += `?client_id=${APP_ID}`;
@@ -33,10 +33,8 @@ export async function catchFacebookRedirect(req, res) {
       `${FACEBOOK_GRAPH_API_BASE_URL}/v19.0/oauth/access_token`,
       {
         params: {
-          client_id: process.env.FACEBOOK_APP_ID || "693823482937293",
-          client_secret:
-            process.env.FACEBOOK_APP_SECRET ||
-            "65d19d92fbc7a7fb08e93caf2e91313b",
+          client_id: process.env.FACEBOOK_APP_ID,
+          client_secret: process.env.FACEBOOK_APP_SECRET,
           redirect_uri: `${REDIRECT_URI}`,
           code,
         },
