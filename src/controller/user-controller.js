@@ -54,7 +54,7 @@ export const loginUser = async (req, res) => {
     }
 
     const tokens = await Token.find({ user: user?.id });
-    const access_tokens = tokens.map((token) => token.platform);
+    const access_tokens = tokens?.map((token) => token.platform);
     res.status(200).json({
       message: "Success",
       id: user._id,
