@@ -8,7 +8,7 @@ export default async function authenticate(req, res, next) {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-
+      console.log("🚀 ~ authenticate ~ token:", headers.authorization);
       token = req.headers.authorization.split(" ")[1];
 
       const decoded = jwt.verify(
@@ -33,4 +33,4 @@ export default async function authenticate(req, res, next) {
   if (!token) {
     res.status(401).json({ message: "Unauthorized , No Token" });
   }
-};
+}

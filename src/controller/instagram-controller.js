@@ -9,7 +9,7 @@ export async function loginWithInstagram(req, res) {
         url += '&state=DCEeFWf45A53sdfKef424'
         url += '&scope=user_profile,user_media'
         url += '&redirect_uri=https://localhost:8000/instagram/callback'
-        res.redirect(url)
+        res.status(200).json({ url })
     } catch (error) {
         res.status(400).json({ message: error.message })
     }
