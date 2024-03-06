@@ -16,5 +16,5 @@ export async function getMyTiktokOAuth(req, res) {
     url += '&redirect_uri=https://ocloudsolutions.net';
     url += '&state=' + csrfState;
 
-    res.redirect(url);
+    res.status(200).json({ url })
 }
