@@ -8,7 +8,7 @@ import authenticate from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/oauth", getMyFacebookToken);
+router.get("/oauth", authenticate, getMyFacebookToken);
 router.get("/callback", catchFacebookRedirect);
 router.post("/make-post", authenticate, makeMyFacebookPost);
 

@@ -1,8 +1,6 @@
 import User from "../model/User.js";
 import bcrypt from "bcryptjs";
-import Otp from "../model/otp.js";
 import jwt from "jsonwebtoken";
-import nodeMailer from "nodemailer";
 import Token from "../model/token.js";
 
 export const registerUser = async (req, res) => {

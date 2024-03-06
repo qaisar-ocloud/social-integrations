@@ -11,7 +11,7 @@ export async function getMyFacebookToken(req, res) {
   try {
     let url = "https://www.facebook.com/v19.0/dialog/oauth";
     const APP_ID = process.env.FACEBOOK_APP_ID;
-    const REDIRECT_URI = "https://localhost:8000/facebook/callback";
+    const REDIRECT_URI = `https://localhost:8000/facebook/callback?id=${req?.user._id}`;
 
     url += `?client_id=${APP_ID}`;
     url += `&redirect_uri=${REDIRECT_URI}`;
@@ -24,9 +24,11 @@ export async function getMyFacebookToken(req, res) {
 }
 
 export async function catchFacebookRedirect(req, res) {
+  const { code, id } = req.query;
   const FACEBOOK_GRAPH_API_BASE_URL = "https://graph.facebook.com";
-  const REDIRECT_URI = "https://localhost:8000/facebook/callback";
-  const { code } = req.query;
+  const REDIRECT_URI = `https://localhost:8000/facebook/callback?id=${id}`;
+
+  console.log("🚀 ~ catchFacebookRedirect ~ id:", id);
 
   try {
     const { data } = await axios.get(
@@ -55,7 +57,7 @@ export async function catchFacebookRedirect(req, res) {
     await Token.create({
       access_token: access_token,
       type: token_type,
-      user: req.user?.id ?? "65e5a7bc9d86c8722933245c",
+      user: id,
       platform: "facebook",
       permission,
       platform_user_id: fbUserID,

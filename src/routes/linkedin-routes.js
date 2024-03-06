@@ -8,7 +8,7 @@ import {
 import authenticate from "../middleware/authMiddleware.js";
 
 const router = express.Router();
-router.get("/oauth", loginWithLinkedin);
+router.get("/oauth", authenticate, loginWithLinkedin);
 router.get("/callback", linkedinCallback);
 router.post("/make-post", authenticate, makeLinkedinPost);
 

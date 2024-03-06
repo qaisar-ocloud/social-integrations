@@ -9,17 +9,17 @@ export async function loginWithLinkedin(req, res) {
     url += "&client_id=785do9buvvueo1";
     url += "&state=DCEeFWf45A53sdfKef424";
     url += "&scope=openid%20profile%20email%20w_member_social";
-    url += "&redirect_uri=https://localhost:8000/linkedin/callback";
+    url += `&redirect_uri=https://localhost:8000/linkedin/callback?id=${req?.user._id}`;
 
     res.status(200).json({ url });
   } catch (error) {
+    console.log("🚀 ~ loginWithLinkedin ~ error:", error);
     res.status(400).json({ message: error.message });
   }
 }
 export async function linkedinCallback(req, res) {
   try {
-    const { code, state } = req.query;
-
+    const { code, state, id } = req.query;
     const headers = {
       "Content-Type": "application/x-www-form-urlencoded",
     };
@@ -31,7 +31,7 @@ export async function linkedinCallback(req, res) {
         grant_type: "authorization_code",
         client_id: process.env.LINKEDIN_CLIENT_ID,
         client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-        redirect_uri: "https://localhost:8000/linkedin/callback",
+        redirect_uri: `https://localhost:8000/linkedin/callback?id=${id}`,
       },
       { headers }
     );
@@ -45,7 +45,7 @@ export async function linkedinCallback(req, res) {
         id_token,
         permission: scope,
         type,
-        user: req.user?.id ?? "65e5a7bc9d86c8722933245c",
+        user: id,
         platform: "linkedin",
         expiry_date: new Date(currentTime + data.expires_in),
       });
@@ -54,12 +54,13 @@ export async function linkedinCallback(req, res) {
     const redirectUrl = `http://localhost:3000?success=true&platform=linkedin`;
     res.redirect(redirectUrl);
   } catch (error) {
+    console.log("🚀 ~ linkedinCallback ~ error:", error);
     res.status(403).json({ message: error.message });
   }
 }
 
 export async function makeLinkedinPost(req, res) {
-  const { text } = req.body;
+  const { text, scheduledAt } = req.body;
 
   try {
     const token = await Token.findOne({
