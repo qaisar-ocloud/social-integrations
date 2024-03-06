@@ -84,11 +84,10 @@ async function postToFacebook(accessToken, text, published, scheduledAfter) {
         const { access_token, id } = pagesInfo;
         const item = `${id}/feed`;
 
-        const scheduledAt = Math.floor(Date.now() / 1000) + scheduledAfter;
         const batchBody = scheduledAfter
           ? {
               message: text,
-              scheduled_publish_time: scheduledAt,
+              scheduled_publish_time: scheduledAfter,
               published,
             }
           : {
@@ -104,7 +103,7 @@ async function postToFacebook(accessToken, text, published, scheduledAfter) {
         return makeFacebookGraphqlReq(accessProofForPost);
       })
       .then((postResponse) => {
-        return scheduledAfter
+        const response = scheduledAfter
           ? {
               message: `Post Scheduled to Publish after ${scheduledAfter} seconds`,
               postResponse,
@@ -113,6 +112,7 @@ async function postToFacebook(accessToken, text, published, scheduledAfter) {
               message: `Post Pulished`,
               postResponse,
             };
+        return response;
       })
       .catch((error) => {
         error: error.message;
