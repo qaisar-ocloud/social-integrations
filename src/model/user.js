@@ -15,9 +15,8 @@ const userSchema = mongoose.Schema({
     required: true,
   },
 });
-if (mongoose.modelNames().includes('User')) {
-
-  mongoose.deleteModel('User');
+if (mongoose.modelNames().includes("User")) {
+  mongoose.deleteModel("User");
 }
 const User = mongoose.model("User", userSchema);
 export default User;
