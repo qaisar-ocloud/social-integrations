@@ -51,7 +51,6 @@ export async function createSocialPostWIthMany(req, res) {
 }
 
 async function postToLinkedIn(accessToken, text, scheduled_at, user_id) {
-  console.log("🚀 ~ postToLinkedIn ~ scheduled_at:", scheduled_at);
   try {
     if (scheduled_at > 0) {
       const scheduledPost = await Post.create({
