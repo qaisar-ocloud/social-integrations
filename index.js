@@ -11,6 +11,7 @@ import userRoutes from "./src/routes/user-routes.js";
 import postRoutes from "./src/routes/post-routes.js";
 import https from "https";
 import fs from "fs";
+import "./src/cron-job/cron-schedule-post.js";
 
 const app = express();
 dotenv.config();

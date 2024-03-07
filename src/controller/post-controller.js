@@ -1,5 +1,7 @@
 import axios from "axios";
+import dayjs from "dayjs";
 import Token from "../model/token.js";
+import Post from "../model/post.js";
 import { preparePostBody as preparePostBodyForLinkedIn } from "../services/linkedin-service.js";
 import {
   makeFacebookGraphqlReq,
@@ -8,7 +10,8 @@ import {
 } from "../services/facebook-service.js";
 
 export async function createSocialPostWIthMany(req, res) {
-  const { platforms, text, published, scheduledAfter } = req.body;
+  const { platforms, text, published, scheduledAfter: scheduled_at } = req.body;
+  const { user } = req;
 
   try {
     const tokenPromises = platforms.map((item) =>
@@ -26,10 +29,10 @@ export async function createSocialPostWIthMany(req, res) {
     );
 
     const linkedInPromise = linkedInToken
-      ? postToLinkedIn(linkedInToken, text)
+      ? postToLinkedIn(linkedInToken, text, scheduled_at, user._id)
       : null;
     const facebookPromise = facebookToken
-      ? postToFacebook(facebookToken, text, published, scheduledAfter)
+      ? postToFacebook(facebookToken, text, published, scheduled_at, user._id)
       : null;
 
     const [linkedInResponse, facebookResponse] = await Promise.all([
@@ -47,8 +50,25 @@ export async function createSocialPostWIthMany(req, res) {
   }
 }
 
-async function postToLinkedIn(accessToken, text) {
+async function postToLinkedIn(accessToken, text, scheduled_at, user_id) {
+  console.log("🚀 ~ postToLinkedIn ~ scheduled_at:", scheduled_at);
   try {
+    if (scheduled_at > 0) {
+      const scheduledPost = await Post.create({
+        text,
+        is_scheduled: true,
+        scheduled_at: dayjs.unix(scheduled_at),
+        user: user_id,
+        token: accessToken,
+        platform: "linkedin",
+      });
+
+      return {
+        message: `Post is scheduled at ${dayjs().unix(scheduled_at)}`,
+        caption: scheduledPost?.text,
+      };
+    }
+
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       "X-Restli-Protocol-Version": "2.0.0",
@@ -64,14 +84,22 @@ async function postToLinkedIn(accessToken, text) {
       }
     );
 
-    return { message: "Posts created successfully", data };
+    return data?.id
+      ? { message: "Posts created successfully", data }
+      : new Error("linkedin server error", data);
   } catch (error) {
     console.error("Error posting to LinkedIn:", error);
     throw error;
   }
 }
 
-async function postToFacebook(accessToken, text, published, scheduledAfter) {
+async function postToFacebook(
+  accessToken,
+  text,
+  published,
+  scheduled_at,
+  user_id
+) {
   try {
     const { access_token, platform_user_id: userId } = accessToken;
     const gqlQueryParams = `${userId}/accounts`;
@@ -84,10 +112,10 @@ async function postToFacebook(accessToken, text, published, scheduledAfter) {
         const { access_token, id } = pagesInfo;
         const item = `${id}/feed`;
 
-        const batchBody = scheduledAfter
+        const batchBody = scheduled_at
           ? {
               message: text,
-              scheduled_publish_time: scheduledAfter,
+              scheduled_publish_time: scheduled_at,
               published,
             }
           : {
@@ -103,16 +131,20 @@ async function postToFacebook(accessToken, text, published, scheduledAfter) {
         return makeFacebookGraphqlReq(accessProofForPost);
       })
       .then((postResponse) => {
-        const response = scheduledAfter
-          ? {
-              message: `Post Scheduled to Publish after ${scheduledAfter} seconds`,
-              postResponse,
-            }
-          : {
-              message: `Post Pulished`,
-              postResponse,
-            };
-        return response;
+        if (postResponse?.id) {
+          const response = scheduled_at
+            ? {
+                message: `Post Scheduled to be Published at ${dayjs(
+                  scheduled_at
+                ).unix()}`,
+                postResponse,
+              }
+            : {
+                message: `Post Pulished`,
+                postResponse,
+              };
+          return response;
+        } else throw new Error("facebook Server Error", postResponse);
       })
       .catch((error) => {
         error: error.message;
