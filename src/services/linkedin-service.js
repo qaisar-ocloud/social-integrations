@@ -2,19 +2,158 @@ import axios from "axios";
 import dayjs from "dayjs";
 import FormData from "form-data";
 import Post from "../model/post.js";
-import fs from "fs";
-const fetchUserLinkedinProfile = async (headers) => {
+
+export const postToLinkedIn = async (
+  accessToken,
+  text,
+  scheduled_at,
+  user_id,
+  mediaUrl
+) => {
+  try {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "X-Restli-Protocol-Version": "2.0.0",
+    };
+
+    if (scheduled_at > 0) {
+      return saveScheduledPost(
+        text,
+        scheduled_at,
+        user_id,
+        accessToken,
+        mediaUrl ? mediaUrl : null
+      );
+    }
+
+    if (!mediaUrl) {
+      const bodyWithoutMedia = await preparePostBody(headers, text);
+      return publishToLinkedin(bodyWithoutMedia, headers);
+    }
+    return handleLinkedinMediaPost(headers, accessToken, mediaUrl, text);
+  } catch (error) {
+    console.error("Error posting to LinkedIn:", error?.message);
+    throw error;
+  }
+};
+
+async function saveScheduledPost(
+  text,
+  scheduled_at,
+  user_id,
+  accessToken,
+  mediaUrl = null
+) {
+  const scheduledPost = await Post.create({
+    text,
+    is_scheduled: true,
+    scheduled_at: dayjs.unix(scheduled_at),
+    user: user_id,
+    token: accessToken,
+    platform: "linkedin",
+    media_url: mediaUrl ? mediaUrl : null,
+  });
+
+  return {
+    message: `Post is scheduled at ${dayjs().unix(scheduled_at)}`,
+    caption: scheduledPost?.text,
+  };
+}
+
+async function uplaodMediaToLinkedinContainer(
+  mediaUrl,
+  uploadUrl,
+  accessToken
+) {
+  const imageFile = await axios.get(mediaUrl, { responseType: "stream" });
+  const imageStream = imageFile.data;
+
+  const form = new FormData();
+  form.append("file", imageStream);
+  return await axios.post(uploadUrl, form, {
+    headers: {
+      ...form.getHeaders(),
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+async function publishToLinkedin(body, headers) {
+  const response = await axios.post(
+    "https://api.linkedin.com/v2/ugcPosts",
+    body,
+    { headers }
+  );
+
+  if (response.status !== 201) {
+    return response.data.errors[0].message;
+  }
+  return { message: "Post created successfully" };
+}
+
+async function registerMediaUpload(headers, accessToken) {
+  try {
+    const data = await fetchUserLinkedinProfile(headers);
+    const response = await axios.post(
+      "https://api.linkedin.com/v2/assets?action=registerUpload",
+      {
+        registerUploadRequest: {
+          recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+          owner: `urn:li:person:${data.sub}`,
+          serviceRelationships: [
+            {
+              relationshipType: "OWNER",
+              identifier: "urn:li:userGeneratedContent",
+            },
+          ],
+          supportedUploadMechanism: ["SYNCHRONOUS_UPLOAD"],
+        },
+      },
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    return response.data.value;
+  } catch (error) {
+    console.error("Error registering media upload:", error);
+    throw error;
+  }
+}
+
+async function fetchUserLinkedinProfile(headers) {
   try {
     const { data } = await axios.get("https://api.linkedin.com/v2/userinfo", {
       headers,
     });
-    console.log("🚀 ~ fetchUserLinkedinProfile ~ data:", data);
     return data;
   } catch (error) {
     throw new Error("Error fetching LinkedIn profile:", error);
   }
-};
+}
 
+async function handleLinkedinMediaPost(headers, accessToken, mediaUrl, text) {
+  const { asset, uploadMechanism } = await registerMediaUpload(
+    headers,
+    accessToken
+  );
+
+  const { uploadUrl } =
+    uploadMechanism[
+      "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+    ];
+
+  const uploadMedia = await uplaodMediaToLinkedinContainer(
+    mediaUrl,
+    uploadUrl,
+    accessToken
+  );
+
+  if (uploadMedia.status !== 201) {
+    return new Error("Error in Uploading Media to Linkedin");
+  }
+
+  const bodyWithMedia = await preparePostBody(headers, text, mediaUrl, asset);
+
+  return publishToLinkedin(bodyWithMedia, headers);
+}
 export const preparePostBody = async (
   headers,
   text,
@@ -63,137 +202,23 @@ export const preparePostBody = async (
   }
 };
 
-const registerMediaUpload = async (headers, accessToken) => {
-  try {
-    const data = await fetchUserLinkedinProfile(headers);
-    const response = await axios.post(
-      "https://api.linkedin.com/v2/assets?action=registerUpload",
-      {
-        registerUploadRequest: {
-          recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-          owner: `urn:li:person:${data.sub}`,
-          serviceRelationships: [
-            {
-              relationshipType: "OWNER",
-              identifier: "urn:li:userGeneratedContent",
-            },
-          ],
-          supportedUploadMechanism: ["SYNCHRONOUS_UPLOAD"],
-        },
-      },
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    return response.data.value;
-  } catch (error) {
-    console.error("Error registering media upload:", error);
-    throw error;
-  }
-};
-export async function scheduledLinkedinJob(text, accessToken, mediaUrl = null) {
-  try {
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      "X-Restli-Protocol-Version": "2.0.0",
-    };
-
-    const body = await preparePostBody(headers, text, mediaUrl);
-
-    const { data } = await axios.post(
-      "https://api.linkedin.com/v2/ugcPosts",
-      body,
-      {
-        headers,
-      }
-    );
-
-    return data;
-  } catch (error) {
-    console.log("🚀 ~ scheduledLinkedinJob ~ error:", error);
-    throw new Error(error);
-  }
-}
-
-export const postToLinkedIn = async (
-  accessToken,
+export const scheduledLinkedinJob = async (
   text,
-  scheduled_at,
-  user_id,
-  mediaUrl
+  accessToken,
+  mediaUrl = null
 ) => {
   try {
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       "X-Restli-Protocol-Version": "2.0.0",
     };
-
-    if (scheduled_at > 0) {
-      const scheduledPost = await Post.create({
-        text,
-        is_scheduled: true,
-        scheduled_at: dayjs.unix(scheduled_at),
-        user: user_id,
-        token: accessToken,
-        platform: "linkedin",
-        media_url: mediaUrl || null,
-      });
-
-      return {
-        message: `Post is scheduled at ${dayjs().unix(scheduled_at)}`,
-        caption: scheduledPost?.text,
-      };
+    if (mediaUrl) {
+      return handleLinkedinMediaPost(headers, accessToken, mediaUrl, text);
     }
 
-    if (!mediaUrl) {
-      const body = await preparePostBody(headers, text);
-      const { data } = await axios.post(
-        "https://api.linkedin.com/v2/ugcPosts",
-        body,
-        { headers }
-      );
-      return data?.id
-        ? { message: "Post created successfully", data }
-        : new Error("LinkedIn server error", data);
-    }
-
-    const { asset, uploadMechanism } = await registerMediaUpload(
-      headers,
-      accessToken
-    );
-
-    const { uploadUrl, headers: uploadHeaders } =
-      uploadMechanism[
-        "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
-      ];
-
-    const binaryMedia = await axios
-      .get(mediaUrl, {
-        responseType: "arraybuffer",
-      })
-
-      .then((response) => Buffer.from(response.data, "binary"));
-
-    const body = await preparePostBody(headers, text, mediaUrl, asset);
-
-    await axios.put(uploadUrl, binaryMedia, { headers });
-
-    const response = await axios.post(
-      "https://api.linkedin.com/v2/shares",
-      body,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "x-li-format": "json",
-        },
-      }
-    );
-
-    if (response.status !== 201) {
-      return response.data.errors[0].message;
-    }
-    return "Post is shared on LinkedIn successfully.";
+    const body = await preparePostBody(headers, text, mediaUrl);
+    return publishToLinkedin(body, headers);
   } catch (error) {
-    console.error("Error posting to LinkedIn:", error?.message);
-    throw error;
+    throw new Error(error);
   }
 };

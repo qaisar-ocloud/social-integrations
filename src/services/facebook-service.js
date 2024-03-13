@@ -154,7 +154,7 @@ export async function postToFacebook(
               published,
             };
 
-        if (image_url.length > 0) {
+        if (image_url) {
           batchBody.link = image_url;
         }
 
@@ -163,6 +163,7 @@ export async function postToFacebook(
           item,
           batchBody
         );
+
         return makeFacebookGraphqlReq(accessProofForPost);
       })
       .then((postResponse) => {
@@ -182,7 +183,7 @@ export async function postToFacebook(
         } else throw new Error("facebook Server Error", postResponse);
       })
       .catch((error) => {
-        error: error.message;
+        throw error;
       });
   } catch (error) {
     console.error("Error posting to Facebook:", error);

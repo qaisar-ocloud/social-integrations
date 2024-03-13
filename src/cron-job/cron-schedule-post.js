@@ -17,7 +17,7 @@ cron.schedule("*/5 * * * *", async () => {
           const response = await scheduledLinkedinJob(
             text,
             accessToken,
-            media_url ? media_url : null
+            media_url && media_url !== "null" ? media_url : null
           );
 
           if (response?.id) {
