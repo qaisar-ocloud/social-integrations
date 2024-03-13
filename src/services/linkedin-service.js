@@ -88,7 +88,7 @@ async function publishToLinkedin(body, headers) {
   if (response.status !== 201) {
     return response.data.errors[0].message;
   }
-  return { message: "Post created successfully" };
+  return { message: "Post created successfully", success: true };
 }
 
 async function registerMediaUpload(headers, accessToken) {

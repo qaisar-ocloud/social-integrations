@@ -29,44 +29,43 @@ export async function createSocialPostWIthMany(req, res) {
       (token) => token?.platform === "instagram"
     );
 
-    const linkedInPromise = linkedInToken
-      ? postToLinkedIn(
-          linkedInToken,
-          text,
-          scheduled_at,
-          req?.user._id,
-          image_url?.secure_url
-        )
-      : null;
-
-    const facebookPromise = facebookToken
-      ? postToFacebook(
-          facebookToken,
-          text,
-          published,
-          scheduled_at,
-          image_url?.secure_url
-        )
-      : null;
-
-    // const instagramPromise = instagramToken
-    //   ? postToInstagram(instagramToken, text, scheduled_at, image_url)
+    // const linkedInPromise = linkedInToken
+    //   ? postToLinkedIn(
+    //       linkedInToken,
+    //       text,
+    //       scheduled_at,
+    //       req?.user._id,
+    //       image_url?.secure_url
+    //     )
     //   : null;
 
+    // const facebookPromise = facebookToken
+    //   ? postToFacebook(
+    //       facebookToken,
+    //       text,
+    //       published,
+    //       scheduled_at,
+    //       image_url?.secure_url
+    //     )
+    //   : null;
+
+    const instagramPromise = instagramToken
+      ? postToInstagram(instagramToken, text, scheduled_at, image_url)
+      : null;
+
     const [
-      linkedInResponse,
-      facebookResponse,
-      //   // instagramResponse
+      // linkedInResponse,
+      // facebookResponse,
+      instagramResponse,
     ] = await Promise.all([
-      linkedInPromise,
-      facebookPromise,
-      // instagramPromise
+      // linkedInPromise, facebookPromise,
+      instagramPromise,
     ]);
 
     return res.status(200).json({
-      linkedInResponse,
-      facebookResponse,
-      // instagramResponse,
+      // linkedInResponse,
+      // facebookResponse,
+      instagramResponse,
     });
   } catch (error) {
     console.error("Error in createSocialPostWIthMany:", error);

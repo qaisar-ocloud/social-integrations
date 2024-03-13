@@ -20,7 +20,7 @@ cron.schedule("*/5 * * * *", async () => {
             media_url && media_url !== "null" ? media_url : null
           );
 
-          if (response?.id) {
+          if (response?.success) {
             await Post.findByIdAndUpdate(post._id, { is_scheduled: false });
 
             return {
