@@ -13,7 +13,6 @@ export async function loginWithLinkedin(req, res) {
 
     res.status(200).json({ url });
   } catch (error) {
-    console.log("🚀 ~ loginWithLinkedin ~ error:", error);
     res.status(400).json({ message: error.message });
   }
 }
@@ -37,8 +36,7 @@ export async function linkedinCallback(req, res) {
     );
 
     if (data) {
-      const currentTime = Date.now();
-      const { scope, id_token, access_token, type } = data;
+      const { scope, id_token, access_token, type, expires_in } = data;
 
       await Token.create({
         access_token,
@@ -47,11 +45,13 @@ export async function linkedinCallback(req, res) {
         type,
         user: id,
         platform: "linkedin",
-        expiry_date: new Date(currentTime + data.expires_in),
+        expiry_date: new Date(Date.now() + expires_in * 1000),
       });
+      console.log("🚀 ~ linkedinCallback ~  data.expires_in:");
     }
 
     const redirectUrl = `http://localhost:3000?success=true&platform=linkedin`;
+
     res.redirect(redirectUrl);
   } catch (error) {
     console.log("🚀 ~ linkedinCallback ~ error:", error);

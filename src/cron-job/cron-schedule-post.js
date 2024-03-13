@@ -12,9 +12,13 @@ cron.schedule("*/5 * * * *", async () => {
 
     if (scheduledPosts.length > 0) {
       scheduledPosts.forEach(async (post) => {
-        const { text, token: accessToken } = post;
+        const { text, token: accessToken, media_url } = post;
         if (post?.platform === "linkedin") {
-          const response = await scheduledLinkedinJob(text, accessToken);
+          const response = await scheduledLinkedinJob(
+            text,
+            accessToken,
+            media_url ? media_url : null
+          );
 
           if (response?.id) {
             await Post.findByIdAndUpdate(post._id, { is_scheduled: false });

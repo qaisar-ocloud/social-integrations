@@ -15,15 +15,22 @@ import "./src/cron-job/cron-schedule-post.js";
 
 const app = express();
 dotenv.config();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
+app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: "20mb" }));
+app.use(bodyParser.urlencoded({ limit: "20mb", extended: true }));
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
 const options = {
   key: fs.readFileSync("server.key"),
   cert: fs.readFileSync("server.cert"),
 };
+
 app.use("/linkedin", linkedinRoutes);
 app.use("/facebook", facebookRoutes);
 app.use("/instagram", instagramRoutes);

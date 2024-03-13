@@ -1,5 +1,6 @@
 import axios from "axios";
 import crypto from "crypto";
+import dayjs from "dayjs";
 
 export function prepareQueryForFbGraphql(access_token, gqlQueryParams) {
   try {
@@ -117,70 +118,74 @@ export async function validateFacebookToken(access_token) {
 
     return data;
   } catch (error) {
-    console.error("Error validating Facebook token:", error.message);
+    console.error("Error validating Facebook token:", error);
     throw error;
   }
 }
 
-export async function createSocialPostWIthMany(req, res) {
-  const { platforms, text, link, published, scheduledAfter } = req.body;
+export async function postToFacebook(
+  accessToken,
+  text,
+  published,
+  scheduled_at,
+  image_url = null
+) {
+  try {
+    const { access_token, platform_user_id: userId } = accessToken;
+    const gqlQueryParams = `${userId}/accounts`;
+    const accessProofForPages = prepareQueryForFbGraphql(
+      access_token,
+      gqlQueryParams
+    );
 
-  return Promise.all(
-    platforms.map((item) =>
-      Token.findOne({
-        platform: item,
-      })
-    )
-  )
-    .then((tokens) => {
-      for (const token of tokens) {
-        if (token.platform === "facebook") {
-          const { access_token, platform_user_id: userId } = token;
-          const gqlQueryParams = `${userId}/accounts`;
-          const accessProofForPages = prepareQueryForFbGraphql(
-            access_token,
-            gqlQueryParams
-          );
+    return makeFacebookGraphqlReq(accessProofForPages)
+      .then((pagesInfo) => {
+        const { access_token, id } = pagesInfo;
+        const item = `${id}/feed`;
 
-          return makeFacebookGraphqlReq(accessProofForPages);
+        let batchBody = scheduled_at
+          ? {
+              message: text,
+              scheduled_publish_time: scheduled_at,
+              published,
+            }
+          : {
+              message: text,
+              published,
+            };
+
+        if (image_url.length > 0) {
+          batchBody.link = image_url;
         }
-      }
-    })
-    .then((pagesInfo) => {
-      const { access_token, id } = pagesInfo;
-      const item = `${id}/feed`;
 
-      const scheduledAt = Math.floor(Date.now() / 1000) + scheduledAfter;
-      const batchBody = scheduledAfter
-        ? {
-            message: text,
-            link,
-            scheduled_publish_time: scheduledAt,
-            published,
-          }
-        : {
-            message: text,
-            link,
-            published,
-          };
-
-      let accessProofForPost = prepareMutationForFbGraphql(
-        access_token,
-        item,
-        batchBody
-      );
-      return makeFacebookGraphqlReq(accessProofForPost);
-    })
-    .then((postResponse) => {
-      return scheduledAfter
-        ? res.status(200).json({
-            message: `Post Scheduled to Publish after ${scheduledAfter} seconds`,
-            postResponse,
-          })
-        : res.status(200).json({
-            message: `Post Pulished`,
-            postResponse,
-          });
-    })
-    .catch((error) => res.status(500).json({ error: error.message }));
+        let accessProofForPost = prepareMutationForFbGraphql(
+          access_token,
+          item,
+          batchBody
+        );
+        return makeFacebookGraphqlReq(accessProofForPost);
+      })
+      .then((postResponse) => {
+        if (postResponse?.id) {
+          const response = scheduled_at
+            ? {
+                message: `Post Scheduled to be Published at ${dayjs(
+                  scheduled_at
+                ).unix()}`,
+                postResponse,
+              }
+            : {
+                message: `Post Pulished`,
+                postResponse,
+              };
+          return response;
+        } else throw new Error("facebook Server Error", postResponse);
+      })
+      .catch((error) => {
+        error: error.message;
+      });
+  } catch (error) {
+    console.error("Error posting to Facebook:", error);
+    throw error;
+  }
 }

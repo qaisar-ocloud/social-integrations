@@ -28,8 +28,6 @@ export async function catchFacebookRedirect(req, res) {
   const FACEBOOK_GRAPH_API_BASE_URL = "https://graph.facebook.com";
   const REDIRECT_URI = `https://localhost:8000/facebook/callback?id=${id}`;
 
-  console.log("🚀 ~ catchFacebookRedirect ~ id:", id);
-
   try {
     const { data } = await axios.get(
       `${FACEBOOK_GRAPH_API_BASE_URL}/v19.0/oauth/access_token`,
@@ -48,10 +46,10 @@ export async function catchFacebookRedirect(req, res) {
 
     const {
       data_access_expires_at,
-      issued_at,
       scopes: permission,
       user_id: fbUserID,
     } = temp;
+
     const currentTime = Date.now();
 
     await Token.create({
@@ -61,7 +59,7 @@ export async function catchFacebookRedirect(req, res) {
       platform: "facebook",
       permission,
       platform_user_id: fbUserID,
-      expiry_date: new Date(currentTime + (data_access_expires_at - issued_at)),
+      expiry_date: new Date(Date.now() + data_access_expires_at),
     });
     const redirectUrl = `http://localhost:3000?success=true&platform=facebook`;
 
